@@ -1,0 +1,59 @@
+C:\cygwin64\bin\run.exe --quote /usr/bin/bash.exe -l -c "cd; exec /usr/bin/startXWin :0 -listen tcp -multiwindow -clipboard -wgl -ac"
+
+C:\cygwin64\bin\run.exe --quote /usr/bin/bash.exe -l -c "/usr/bin/XWin :0 -listen tcp -multiwindow -clipboard -wgl -ac"
+
+
+C:\cygwin64\bin\run.exe --quote /usr/bin/bash.exe -l -c "cd; exec /usr/bin/startxwin"
+
+CygwinX -> XWin Server
+XWin Server notification icon -> System Tools -> XTerm
+ssh vagrant@192.168.100.1 -p 10122 -i /cygdrive/c/users/higginbottomm/.vagrant.d/insecure_private_key -Y -oStrictHostKeyChecking=no
+
+xclock &
+
+
+TODO
+====
+On new vagrant up after destroy i.e. new VM, need to delete known hosts entry for vm ip (192.168.100.1)
+C:\cygwin64\home\HigginbottomM\.ssh\known_hosts
+
+add host to localhosts line in /etc/hosts
+? export DISPLAY=0:0
+? copy shared/ansible/files/.Xauthority to ~
+
+Windows script to run up XServer, start a Xterminal and inject ssh command..
+
+Using Putty and WinSCP
+======================
+convert vagrant insecure certificate (C:\Users\higginbottomm\.vagrant.d\insecure_private_key) to Putty format by using puttygen
+	- load certificate and then save PRIVATE KEY as *.ppk
+	
+	
+USE XMING DOWNLOAD NOT CYGWIN XMING (CYGWIN XMING DISPLAY NUMBER SEEMS TIO BE CONFIGURED INCORRECTLY)
+http://www.straightrunning.com/xmingnotes/trouble.php
+
+#Vagrant X11 forwarding only after opening putty session.
+vagrant ssh python -- -Y
+export DISPLAY=localhost:10.0
+
+Ansible playbooks to set up X11
+ansible-playbook /shared/ansible/x11.yml
+ansible-playbook /shared/ansible/liclipse.yml
+
+
+Connect to Jumpbox
+==================
+
+Get external ip of box from build script facts:
+
+"k5_floating_ip_facts": {
+            "availability_zone": "uk-1a",
+            "fixed_ip_address": "10.70.1.253",
+            "floating_ip_address": "62.60.51.181",
+			
+Or from portal.
+Then from python box -> shared/dev/k5-ansible
+
+ssh ubuntu@62.60.51.181 -vvv -i mh-uk-1a.pem
+ 
+ 

@@ -1,0 +1,24 @@
+#
+# ssh config to allow pass thru from the jump server to the other lans
+#
+{# 
+# .0/24 hardcoded - this should be done a different way ipaddr("host")?
+# 1.1.1.0/24 => 1.1.1.*
+#}
+Host {% for net in networks %} {{ net.cidr|replace(".0/24","") }}.* {% endfor %} 
+  ProxyCommand ssh -F k5_ssh_config -W %h:%p {{ jumpserver_floatingip }}
+  # User should be set by ansible_user in the inventory
+  # IdentityFile must match the endpoint host, so you may need to expand this template if you used multiple ssh_keys (best practice)
+  User ubuntu
+  IdentityFile ~/.ssh/{{ region.ssh_keypair }}.pem
+  UserKnownHostsFile=/dev/null
+  StrictHostKeyChecking=no
+  
+Host {{ jumpserver_floatingip }}
+  User {{ jumpserver.ansible_user }}
+  IdentityFile ~/.ssh/{{ region.ssh_keypair }}.pem
+  ControlMaster auto
+  ControlPath ~/.ssh/ansible-mux-%r@%h:%p
+  ControlPersist 5m
+  UserKnownHostsFile=/dev/null
+  StrictHostKeyChecking=no

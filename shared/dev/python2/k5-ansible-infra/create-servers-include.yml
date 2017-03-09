@@ -1,0 +1,54 @@
+# vim: noai:ts=2:sw=2:et
+---
+
+#
+# This is a unique instance creation so that we can run it 
+#  more often ie. daily , and that it wont affect the actual
+#  service
+#
+
+#  - name: "Delete the old jumpserver if it exists"
+#    os_server:
+#      name: "{{ jumpserver.name }}"
+#      state: absent
+#      region_name: "{{ region.name }}"
+#      availability_zone: "{{ region.az }}"
+#      wait: yes
+#      timeout: 120
+  - block:
+    - name: "Create the {{ outer_item.name }} server"
+    # autoip must be no - k5 doesnt allow it at build time
+      os_server:
+        name: "{{ outer_item.name }}"
+        state: present
+        region_name: "{{ region.name }}"
+        availability_zone: "{{ region.az }}"
+        image: "{{ outer_item.image }}"
+        flavor: "{{ outer_item.flavor }}"
+        key_name: "{{ region.ssh_keypair }}"
+        network: "{{ outer_item.networkname }}"  
+        security_groups: "{{ outer_item.security_group }}" 
+        volume_size: "{{ outer_item.volume_size }}"
+        boot_from_volume: yes
+        terminate_volume: yes
+        auto_ip: no
+        meta:
+          group: "servers"
+          key_name: "{{ region.ssh_keypair }}" 
+
+      register: k5_server
+      with_items: "{{ servers }}"
+      loop_control:
+        loop_var: outer_item
+      async: 7200
+      poll: 0
+    
+    - debug: var=k5_server
+    
+    - name: Wait for servers to be created
+      async_status: jid={{item.ansible_job_id}}
+      register: k5_jobs
+      until: k5_jobs.finished
+      retries: 300
+      delay: 10
+      with_items: "{{ k5_server.results }}"

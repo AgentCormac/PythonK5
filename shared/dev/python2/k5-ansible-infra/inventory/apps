@@ -1,0 +1,2 @@
+[apps]
+nx-1a-app01 ansible_host=10.70.2.10 ansible_user=ubuntu ansible_connection=ssh

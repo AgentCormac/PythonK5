@@ -1,0 +1,39 @@
+   1  cd shared/
+    2  ls
+    3  cd dev
+    4  ls
+    5  ls -al ..
+    6  cd k5-ansible-infra/
+    7  ls
+    8  . openrcmh
+    9  cd ../k5-purge/
+   10  ls
+   11  python purge_project.py
+   12  cd ../k5-a
+   13  cd ../k5-ansible-infra/
+   14  ls-al
+   15  ls -al
+   16  ansible-playbook provision_test_connection.yml
+   17  ansible-playbook provision_infra.yml
+   18  sudo yum install python-openstack
+   19  sudo pip install python-openstack-client
+   20  sudo pip install python-openstackclient
+   21  openstack
+   22  openstack router list
+   23  openstack router show
+   24  openstack router show  nx-router-1a-demo01
+   25  openstack imagelist long
+   26  openstack image list long
+   27  openstack image list --long
+   28  ansible-playbook provision_infra.yml --tags=t_jumpsvr
+   29  ping 62.60.51.155
+   30  tracepath 62.60.51.155
+   31  ip r
+   32  ping www.google.com
+   33  tracepath www.google.com
+   34  tracepath -n www.google.com
+   35  tracepath 62.60.51.155 -n
+   36  tracepath -n 62.60.51.155
+   37  cd ../k5-purge/
+   38  python purge_project.py
+   39  history

@@ -1,0 +1,148 @@
+# vim: noai:ts=2:sw=2:et
+---
+
+#
+# This is a unique instance creation so that we can run it 
+#  more often ie. daily , and that it wont affect the actual
+#  service
+#
+
+#  - name: "Delete the old jumpserver if it exists"
+#    os_server:
+#      name: "{{ jumpserver.name }}"
+#      state: absent
+#      region_name: "{{ region.name }}"
+#      availability_zone: "{{ region.az }}"
+#      wait: yes
+#      timeout: 120
+
+#  - name: "Create port / fixed IP for {{ outer_item.name }}server  on {{ outer_item.fixed_ip }} using K5"
+#    k5_create_port:
+#      state: present
+#      name: "server_port"
+#      network_name: "{{ outer_item.networkname }}"
+#      subnet_name: "{{ outer_item.subnet }}"
+#      availability_zone: "{{ region.az }}"
+#      fixed_ip: "{{ outer_item.fixed_ip }}"
+#      security_groups: 
+#        - "{{ outer_item.security_group }}" 
+#      k5_auth: "{{ k5_auth_reg.k5_auth_facts }}"
+
+  - name: "Create the {{ outer_item.name }} server"
+  # autoip must be no - k5 doesnt allow it at build time
+    os_server:
+      name: "{{ outer_item.name }}"
+      state: present
+      region_name: "{{ region.name }}"
+      availability_zone: "{{ region.az }}"
+      image: "{{ outer_item.image }}"
+      flavor: "{{ outer_item.flavor }}"
+      key_name: "{{ region.ssh_keypair }}"
+      network: "{{ outer_item.networkname }}"  # not needed if we supply nics (ie. pre created ports)
+#      nics:
+#        - "port-name=server_port"
+      security_groups: "{{ outer_item.security_group }}" # not needed if we supply nics (ie. pre created ports)
+      volume_size: "{{ outer_item.volume_size }}"
+      boot_from_volume: yes
+      terminate_volume: yes
+      auto_ip: no
+      meta:
+        group: "servers"
+        key_name: "{{ region.ssh_keypair }}" 
+#      userdata: |
+#        #!/bin/bash
+#        apt update
+#        apt -y dist-upgrade
+#        apt-get -y install git python-pip python-dev python-crypto libffi-dev libssl-dev 
+#        echo "### pip install"
+#        pip2 install --upgrade ansible markupsafe 2>&1
+#        echo "### git clone"
+#        git clone https://github.com/mohclips/ansible-guacamole.git /tmp/app
+#        export ANSIBLE_LOG_PATH=/tmp/app/ansible.out
+#        pushd /tmp/app
+#        echo "### ansible play" 
+#        ansible-playbook --connection=local -i "localhost," ./install-guacamole.yml
+#        popd
+#        exit 0
+
+
+#  # but k5 does actually allow assignment of a floating (public) afterward initial creation
+#  # this is by design on k5, that it needs to be a 2-part process
+#  # TODO: find doc link to this 'feature'
+#  - name: "Assign a floating IP"
+#    k5_assign_floating_ip:
+#      # https://docs.ansible.com/ansible/os_floating_ip_module.html
+#      # bug: https://github.com/ansible/ansible/issues/19620
+#      server: "{{ jumpserver.name }}"
+#      fixed_ip: "{{ jumpserver.fixed_ip }}" # local address to NAT to
+#      ext_network: "{{ router.ext_net }}"
+#      k5_auth: "{{ k5_auth_reg.k5_auth_facts }}"
+#    register: floating_ip_reg
+
+#  # our external internet IP
+#  - debug: var=floating_ip_reg
+
+#  - fail: msg="Floating ip assignment failed"
+#    when: floating_ip_reg.changed == false
+
+  #
+  # now we have a running server, save the details to a local inventory for later use
+  #
+  - block:
+    # set a fact to use the external IP in the template later on
+#    - set_fact: 
+#        jumpserver_floatingip: "{{ floating_ip_reg.k5_floating_ip_facts.floating_ip_address }}"
+
+    - name: "add to the running inventory the instance created above"
+      add_host: 
+        hostname: "{{ outer_item.name }}"
+        groupname: "servers"
+
+    - name: "Add the newly created instance to the local host group (located inside the directory)"
+      local_action: lineinfile 
+        dest="./inventory/apps" 
+        regexp="{{ outer_item.name }}"
+        insertafter="[apps]" 
+        line="{{ outer_item.name }} ansible_host={{ outer_item.fixed_ip }} ansible_user={{ outer_item.ansible_user }} ansible_connection={{ outer_item.ansible_connection }}"
+
+
+    - name: "Wait for {{ outer_item.fixed_ip }} instance cloud-init-output.log to say finsished"
+      wait_for:
+        path: /var/log/cloud-init-output.log
+#        delay: 10
+        search_regex: "Cloud-init v. .*? finished at "
+        delay: 1
+        timeout: 600
+      register: log
+      
+    - debug: msg="*** {{log}} ***"
+      
+    - name: "Wait for {{ outer_item.fixed_ip }} instance to listen on port 22"
+      wait_for:
+        state: started
+        host: "{{ outer_item.fixed_ip }}"
+        port: 22
+        delay: 10
+        search_regex: "OpenSSH"
+#        timeout: 60
+      delegate_to: 127.0.0.1 
+
+#    - name: "Create/update local ssh_config for {{ outer_item.name }} pass thru"
+#      template:
+#        src: ./templates/k5_ssh_config.j2
+#        dest: ./k5_ssh_config
+#      delegate_to: localhost    # not needed, but to make this obvious
+
+    - debug: msg="**** {{ outer_item.name }} server is LIVE and ready to use @ {{ outer_item.fixed_ip }} ****"
+
+#    when: floating_ip_reg.k5_floating_ip_facts.floating_ip_address is defined
+
+#[‎24/‎02/‎2017 12:32] Cross, Nicholas: 
+#
+#    - name: "watch cloud-init logfile for finish"
+#      wait_for:
+#        path: /var/log/cloud-init-output.log
+#        search_regex: "Cloud-init v. .*? finished at "
+#        delay: 1
+#        timeout: 600
+#      register: log 

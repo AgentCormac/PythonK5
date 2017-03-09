@@ -1,0 +1,9 @@
+/.pydevproject
+/.project
+/shared/dev/python2/.pydevproject
+/shared/dev/python2/.metadata
+/shared/dev/python2/k5-ansible-infra-v2
+/shared/dev/python2/k5-purge
+/shared/dev/python2/.project
+/shared/dev/python2/k5-ansible-infra/certificates/mh-uk-1b.pem
+/shared/dev/python2/k5-ansible-infra/certificates/mh-uk-1a.pem

@@ -1,0 +1,51 @@
+# vim: noai:ts=2:sw=2:et
+---
+
+#
+# Create a 3-tier Network Infrastructure on Fujitsu K5
+#
+# v1.0 - 02 Jan 2017 - Nicholas Cross / Mohclips - initial release
+#
+
+- name: "Create 3-tier network K5 infrastructure"
+
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  # batch - run 10 tasks at a time when looped- useful when creating bulk compute instances
+  serial: 10
+
+
+  vars:
+    # use the include_vars instead to read vars/
+
+    #
+    # FLAGS: tags to turn on/off features - for faster testing ;)
+    #
+    # t_secgrp
+    # t_network
+    # t_router
+    # t_jumpsvr
+
+    K5_DEBUG: "{{ lookup('env','K5_DEBUG')|default(False) }}"
+
+    outer_item:
+#      fixed_ip: 10.70.2.10
+      fixed_ip: 62.60.52.61
+
+  tasks:
+    - name: "Wait for {{ outer_item.fixed_ip }} instance cloud-init-output.log to say finsished"
+      wait_for:
+        path: /var/log/cloud-init-output.log
+        delay: 10
+        search_regex: "Cloud-init v. .*? finished at "
+    - name: "Wait for {{ outer_item.fixed_ip }} instance to listen on port 22"
+      wait_for:
+        state: started
+        host: "{{ outer_item.fixed_ip }}"
+        port: 22
+        delay: 10
+        search_regex: "OpenSSH"
+        timeout: 60
+      delegate_to: 127.0.0.1 

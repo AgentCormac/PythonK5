@@ -1,0 +1,170 @@
+---
+######################################################################
+#
+# Mark Higginbottom
+#
+# 05/12/2016
+#
+# Playbook to configure a centos7 gui vm with the Robot
+# Framework WebDemo
+#
+# NOTE: This is not the way to write an Ansible Playbook.
+# It is just a quick and dirty script to get up and running quickly.
+#
+######################################################################
+- name: Python dev machine including Robot Framework
+  hosts: "{{ servers }}"
+  become: Yes
+  become_user: root
+  tasks:
+    - debug: "{{ servers }}"
+    - name: install the latest version(s) of Python and its build dependencies
+      yum: pkg={{item}} state=latest
+      with_items:
+        - git
+        - python
+        - python-pip
+        - python-wheel
+        - python-setuptools
+        - python-crypto
+        - python-devel
+        - python-netifaces
+        - openssl-devel
+        - libffi-devel
+
+    - name: check python version
+      shell: python --version
+      register: shell_output
+    - debug: var=shell_output.stderr
+#    - name: Check for pip install file
+#      stat: path=/home/vagrant/get-pip.py
+#      register: pip
+#    - block:
+#      - name: Fetch pip install file
+#        get_url:
+#          url: https://bootstrap.pypa.io/get-pip.py
+#          dest: /home/vagrant
+#      - name: Install pip
+#        command: python get-pip.py
+
+#      when: pip.stat.exists == False
+#      rescue:
+#      - debug: msg="ERROR - pip dependencies install failed"
+#      - name: remove web dir contents
+#        file: path=/home/vagrant/get-pip.py state=absent
+
+    - block:
+      - name: Install Python module dependencies with pip
+        pip:
+          name: django virtualenv robotframework robotframework-selenium2library requests cryptography 
+
+# Use share 1.12.1 works with K5. Later version do not  - 06/02/2017.
+      - name: Install Python shade-1.12.1 module with pip
+        pip:
+          name: shade
+          version: 1.12.1
+
+
+      - name: Install OpenStack client with pip
+        pip:
+          name: python-openstackclient
+          
+# Copy certificates from shared certificate directory to ~/.ssh directory
+# This is the correct place for them and also because windows permissions messes 
+# up the SHARED file permissions so that the certificates are refused.
+# NOTE: use shell module as caommand cannot do wildcards i.e. *
+#    - block:
+#      - name: Copy dg certificates to /home/vagrant/.ssh
+#        copy:
+#          src: /home/vagrant/shared/dev/k5-ansible-infra/certificates/*.pem
+#          dest: /home/vagrant/.ssh
+#          owner: vagrant
+#          group: vagrant
+#          mode: 0600
+      - name: directory
+        command: pwd
+        register: dir_out
+      - debug: msg="{{ dir_out.stdout }}"
+      - debug: msg="{{ dir_out.stderr }}"
+      - name: Copy certificates to /home/vagrant/.ssh
+        shell: cp -fuv /home/vagrant/shared/dev/python2/k5-ansible-infra/certificates/*.pem /home/vagrant/.ssh
+#        args:
+#          chdir: /vagrant  
+        register: move_result   
+      - debug: msg="{{ move_result.stdout }}"
+      - debug: msg="{{ move_result.stderr }}"
+      - name: Own certificates
+        shell: chown vagrant:vagrant /home/vagrant/.ssh/*.pem
+      - name: Set permissions on certificates /home/vagrant/.ssh
+        shell: chmod 600 /home/vagrant/.ssh/*.pem
+#    - block:
+#      - name: Get Atom
+#        get_url: 
+#          url: https://github.com/atom/atom/releases/download/v1.13.1/atom.x86_64.rpm
+#          dest: .
+#      - name: Install Atom
+#        command: sudo yum localinstall atom.x86_64.rpm -y
+#      - name: Install Atom missing dependency
+#        yum:
+#          name: libXScrnSaver
+#          state: latest
+
+#
+#    - name: Check for Geckodriver
+#      stat: path=/usr/bin/geckodriver
+#      register: gecko
+#    - block:
+#      - name: Fetch Geckodriver install file and untar
+#        unarchive:
+#          src: https://github.com/mozilla/geckodriver/releases/download/v0.11.1/geckodriver-v0.11.1-linux64.tar.gz
+#          dest: /usr/lib64
+#          remote_src: Yes
+#      - name: Link up Geckodriver
+#        file:
+#          src: /usr/lib64/geckodriver
+#          dest: /usr/bin/geckodriver
+#          state: link
+#      when: gecko.stat.exists == False
+#      rescue:
+#      - debug: msg="ERROR - unable to set up Geckodriver"
+#
+#    - name: Check for Firefox
+#      stat: path=/usr/bin/firefox
+#      register: ff
+#    - fail: msg="ERROR - firefox not installed"
+#      when: ff.stat.exists == False
+#    - block:
+#      - name: check firefox version
+#        shell: firefox -v
+#        register: shell_output
+#      - debug: var=shell_output.stderr
+#      - name: install the latest version of firefox
+#        yum:
+#          name: firefox
+#          state: latest
+#      when: ff.stat.exists == True
+#      rescue:
+#      - debug: msg="ERROR - problem checking for firefox"
+#
+#    - block:
+#      - name: Clone Robot Framework webdemo
+#        git:
+#          repo: https://bitbucket.org/robotframework/webdemo.git
+#          dest: /home/vagrant/webdemo
+#          clone: yes
+#      - name: Set permissions on webdemo to vagrant
+#        file:
+#          dest: /home/vagrant/webdemo
+#          owner: vagrant
+#          group: vagrant
+#          recurse: yes
+
+#################
+# DEBUG PATTERN #
+#################
+#      - name: directory
+#        command: pwd
+#        register: dir_out
+#      - debug: msg="{{ dir_out.stdout }}"
+#      - debug: msg="{{ dir_out.stderr }}"
+
